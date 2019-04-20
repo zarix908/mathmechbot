@@ -1,39 +1,21 @@
-from flask import Flask
+from flask import Flask, request
+
 import config
-from telegram_chat_bot import TelegramChatBot
-from vk_group_posts_getter import VkGroupPostsGetter
+import web_logging
+from telegram_bot import TelegramBot
 
 app = Flask(__name__)
 
-vk_posts_getter = VkGroupPostsGetter(config.VK_SERVICE_TOKEN, config.VK_GROUP_ID)
-telegram_bot = TelegramChatBot(config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHANNEL_ID)
-
-last_post_id = '9018'
+telegram_bot = TelegramBot()
+telegram_bot.set_webhook(f'{config.APP_HOST}/update')
 
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    global last_post_id
-
-    last_post = next(iter(vk_posts_getter.get()))
-    count = int(last_post.id) - int(last_post_id)
-    last_post_id = last_post.id
-
-    posts = reversed(list(vk_posts_getter.get(count)))
-    for post in posts:
-        telegram_bot.send_message(post.text)
-
-    return 'Ok'
+@app.route('/update', methods=['POST'])
+def update():
+    telegram_bot.process_update(request.data)
+    return 'True'
 
 
-@app.route('/init', methods=['GET'])
-def set_webhook():
-    url = f'{config.GOOGLE_ENGINE_HOST}/webhook'
-    success = telegram_bot.set_webhook(url)
-    if success:
-        return url
-
-
-#if __name__ == '__main__':
-#    app.run()
-
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    return web_logging.get_logs()
