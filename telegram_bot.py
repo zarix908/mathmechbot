@@ -13,6 +13,8 @@ class TelegramBot(telebot.TeleBot):
                                               config.LAST_POSTS, config.POSTS_MAX_COUNT)
 
     def process_update(self, update):
+        chat_id = None
+
         try:
             message = self.parse_message(update)
             chat_id = self.parse_chat_id(update)
@@ -20,13 +22,13 @@ class TelegramBot(telebot.TeleBot):
             if not message.startswith('/'):
                 return
 
-            if str(chat_id) != config.TELEGRAM_DIALOG_ID:
+            if str(chat_id) not in config.TELEGRAM_DIALOG_ID:
                 self.send_message(chat_id, 'Ошибка прав доступа')
                 return
 
             self.process_message(message, chat_id)
         except Exception:
-            self.send_message(config.TELEGRAM_DIALOG_ID, "Ой, ошибочка вышла")
+            self.send_message(chat_id, "Ой, ошибочка вышла")
 
     @log
     def process_message(self, message, chat_id):
@@ -39,7 +41,7 @@ class TelegramBot(telebot.TeleBot):
     def show_new_posts(self, chat_id):
         if self.__posted:
             self.__posts_manager.update()
-            self.__posted = False
+            self.__posted = len(self.__posts_manager.posts) == 0
 
         posts = self.__posts_manager.posts
 
